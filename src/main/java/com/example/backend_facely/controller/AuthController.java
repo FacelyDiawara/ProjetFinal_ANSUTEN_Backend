@@ -1,6 +1,7 @@
 package com.example.backend_facely.controller;
 
-import com.example.backend_facely.dto.*;
+import com.example.backend_facely.dto.AuthResponseDTO;
+import com.example.backend_facely.dto.LoginDTO;
 import com.example.backend_facely.entity.Utilisateur;
 import com.example.backend_facely.enums.Role;
 import com.example.backend_facely.repository.UtilisateurRepository;
@@ -9,10 +10,11 @@ import com.example.backend_facely.service.UtilisateurService;
 
 import jakarta.validation.Valid;
 
-import org.springframework.http.*;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.crypto.password.PasswordEncoder;
 
 import org.springframework.web.bind.annotation.*;
 
@@ -24,20 +26,17 @@ public class AuthController {
     private final UtilisateurRepository repository;
     private final UtilisateurService utilisateurService;
     private final JwtService jwtService;
-    private final PasswordEncoder passwordEncoder;
 
     public AuthController(
             AuthenticationManager authenticationManager,
             UtilisateurRepository repository,
             UtilisateurService utilisateurService,
-            JwtService jwtService,
-            PasswordEncoder passwordEncoder) {
+            JwtService jwtService) {
 
         this.authenticationManager = authenticationManager;
         this.repository = repository;
         this.utilisateurService = utilisateurService;
         this.jwtService = jwtService;
-        this.passwordEncoder = passwordEncoder;
     }
 
     // =========================================================
@@ -50,15 +49,10 @@ public class AuthController {
 
         System.out.println("=== LOGIN ===");
         System.out.println("Email reçu : " + request.getEmail());
-        System.out.println(
-                "Mot de passe reçu : "
-                        + (request.getMotDePasse() != null
-                        ? "OUI"
-                        : "NON")
-        );
 
         try {
 
+            // Vérification de l'email et du mot de passe
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
                             request.getEmail(),
@@ -70,13 +64,17 @@ public class AuthController {
                     "=== AUTHENTIFICATION REUSSIE ==="
             );
 
-            var user = repository
+            // Récupération de l'utilisateur
+            Utilisateur user = repository
                     .findByEmail(request.getEmail())
                     .orElseThrow();
 
+            // Génération de la réponse avec JWT
             AuthResponseDTO response = toResponse(user);
 
-            System.out.println("=== JWT GENERE ===");
+            System.out.println(
+                    "=== JWT GENERE ==="
+            );
 
             return ResponseEntity.ok(response);
 
@@ -87,13 +85,11 @@ public class AuthController {
             );
 
             System.out.println(
-                    "Type : "
-                            + e.getClass().getName()
+                    "Type : " + e.getClass().getName()
             );
 
             System.out.println(
-                    "Message : "
-                            + e.getMessage()
+                    "Message : " + e.getMessage()
             );
 
             return ResponseEntity
@@ -104,19 +100,20 @@ public class AuthController {
         }
     }
 
-
     // =========================================================
     // INSCRIPTION
     // =========================================================
 
     @PostMapping("/register")
     public ResponseEntity<AuthResponseDTO> register(
-            @RequestParam(defaultValue = "ETUDIANT")
-            Role role,
+            @RequestParam(defaultValue = "ETUDIANT") Role role,
             @RequestBody RegistrationRequest request) {
 
-        // Pour des raisons de sécurité,
-        // l'inscription publique ne peut pas créer un ADMIN.
+        /*
+         * Pour des raisons de sécurité, un utilisateur
+         * ne peut pas créer un compte ADMIN depuis
+         * l'inscription publique.
+         */
         Role safeRole =
                 role == Role.ADMIN
                         ? Role.ETUDIANT
@@ -136,101 +133,8 @@ public class AuthController {
                 .body(toResponse(user));
     }
 
-
     // =========================================================
-    // RÉINITIALISATION TEMPORAIRE DU MOT DE PASSE ADMIN
-    // =========================================================
-    //
-    // À utiliser UNE SEULE FOIS pour résoudre le problème
-    // du mot de passe de l'administrateur.
-    //
-    // Email :
-    // facely@diawara.com
-    //
-    // Nouveau mot de passe temporaire :
-    // admin123
-    //
-    // =========================================================
-
-    @GetMapping("/reset-admin")
-    public ResponseEntity<String> resetAdmin() {
-
-        String email = "facely@diawara.com";
-
-        String nouveauMotDePasse = "admin123";
-
-        try {
-
-            Utilisateur user =
-                    repository
-                            .findByEmail(email)
-                            .orElseThrow(
-                                    () -> new RuntimeException(
-                                            "Administrateur introuvable"
-                                    )
-                            );
-
-            // Encodage BCrypt du nouveau mot de passe
-            String motDePasseEncode =
-                    passwordEncoder.encode(
-                            nouveauMotDePasse
-                    );
-
-            user.setMotDePasse(
-                    motDePasseEncode
-            );
-
-            // On s'assure également que l'utilisateur
-            // possède bien le rôle ADMIN.
-            user.setRole(Role.ADMIN);
-
-            repository.save(user);
-
-            System.out.println(
-                    "===================================="
-            );
-
-            System.out.println(
-                    "ADMIN RÉINITIALISÉ AVEC SUCCÈS"
-            );
-
-            System.out.println(
-                    "Email : " + email
-            );
-
-            System.out.println(
-                    "Nouveau mot de passe : "
-                            + nouveauMotDePasse
-            );
-
-            System.out.println(
-                    "===================================="
-            );
-
-            return ResponseEntity.ok(
-                    "Mot de passe administrateur "
-                            + "réinitialisé avec succès."
-            );
-
-        } catch (Exception e) {
-
-            e.printStackTrace();
-
-            return ResponseEntity
-                    .status(
-                            HttpStatus.INTERNAL_SERVER_ERROR
-                    )
-                    .body(
-                            "Erreur lors de la "
-                                    + "réinitialisation : "
-                                    + e.getMessage()
-                    );
-        }
-    }
-
-
-    // =========================================================
-    // CONVERSION UTILISATEUR -> RÉPONSE JWT
+    // CRÉATION DE LA RÉPONSE JWT
     // =========================================================
 
     private AuthResponseDTO toResponse(
@@ -253,9 +157,8 @@ public class AuthController {
                 .build();
     }
 
-
     // =========================================================
-    // DTO INSCRIPTION
+    // DTO POUR L'INSCRIPTION
     // =========================================================
 
     public record RegistrationRequest(
