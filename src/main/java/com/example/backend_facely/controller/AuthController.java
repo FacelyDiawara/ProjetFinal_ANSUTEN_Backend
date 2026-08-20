@@ -69,6 +69,13 @@ public class AuthController {
                     .findByEmail(request.getEmail())
                     .orElseThrow();
 
+            // Vérification de l'activation du compte
+            if (!user.isActif()) {
+                return ResponseEntity
+                        .status(HttpStatus.FORBIDDEN)
+                        .body("Votre compte est en attente de validation par un administrateur.");
+            }
+
             // Génération de la réponse avec JWT
             AuthResponseDTO response = toResponse(user);
 

@@ -16,5 +16,7 @@ public class OffreStage {
     @NotNull private LocalDate dateFin;
     @NotBlank private String lieu;
     private StatuOffre statut;
-    @NotNull private Long entrepriseId;
+    
+    // Rendu optionnel : si null, sera récupéré via l'utilisateur connecté (JWT)
+    private Long entrepriseId;
 }

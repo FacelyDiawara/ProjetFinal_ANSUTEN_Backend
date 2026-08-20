@@ -17,4 +17,9 @@ public class UtilisateureController {
     @GetMapping("/{id}") public ResponseEntity<Utilisateur> getById(@PathVariable Long id){return ResponseEntity.ok(service.findById(id));}
     @PutMapping("/{id}") public ResponseEntity<Utilisateur> update(@PathVariable Long id,@Valid @RequestBody Utilisateur dto){return ResponseEntity.ok(service.update(id,dto));}
     @DeleteMapping("/{id}") public ResponseEntity<Void> delete(@PathVariable Long id){service.delete(id);return ResponseEntity.noContent().build();}
+    
+    @PutMapping("/{id}/activation") 
+    public ResponseEntity<Utilisateur> activerCompte(@PathVariable Long id, @RequestParam boolean actif) {
+        return ResponseEntity.ok(service.activerCompte(id, actif));
+    }
 }

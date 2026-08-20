@@ -13,6 +13,9 @@ public class Candidature {
     private LocalDateTime dateSoumission;
     @NotBlank private String lettreMotivation;
     private StatutCandidature statut;
-    @NotNull private Long etudiantId;
+    
+    // Rendu optionnel : si null, récupéré via l'utilisateur connecté
+    private Long etudiantId;
+    
     @NotNull private Long offreStageId;
 }

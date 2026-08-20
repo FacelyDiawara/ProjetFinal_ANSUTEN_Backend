@@ -50,10 +50,12 @@ public class UtilisateurService {
 
     public com.example.backend_facely.entity.Utilisateur createInternal(String nom, String prenom, String email, String motDePasse, Role role) {
         if (repository.existsByEmail(email)) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email déjà utilisé");
+        boolean isActif = (role == Role.ADMIN);
         return repository.save(com.example.backend_facely.entity.Utilisateur.builder()
                 .nom(nom).prenom(prenom).email(email)
                 .motDePasse(passwordEncoder.encode(motDePasse))
                 .role(role == null ? Role.ETUDIANT : role)
+                .actif(isActif)
                 .build());
     }
 
@@ -62,6 +64,12 @@ public class UtilisateurService {
     }
 
     public Utilisateur toDto(com.example.backend_facely.entity.Utilisateur e) {
-        return Utilisateur.builder().id(e.getId()).nom(e.getNom()).prenom(e.getPrenom()).email(e.getEmail()).role(e.getRole()).build();
+        return Utilisateur.builder().id(e.getId()).nom(e.getNom()).prenom(e.getPrenom()).email(e.getEmail()).role(e.getRole()).actif(e.isActif()).build();
+    }
+
+    public Utilisateur activerCompte(Long id, boolean actif) {
+        var entity = getEntity(id);
+        entity.setActif(actif);
+        return toDto(repository.save(entity));
     }
 }
