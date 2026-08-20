@@ -18,6 +18,8 @@ Backend REST de la plateforme UniStage conformément aux étapes 3 et 4 du cahie
 Créer la base (ou laisser `createDatabaseIfNotExist=true` la créer automatiquement) :
 
 ```sql
+////antigravity224@gmail.com
+Di@riou224
 CREATE DATABASE unistage_db;
 ```
 
